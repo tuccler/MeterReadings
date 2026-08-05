@@ -1,0 +1,7 @@
+# Input Select to choose device (populate via the populate_device_select service)
+input_select:
+  meter_device:
+    name: 'Gerät wählen'
+    options: []
+    initial: ''
+    icon: 'mdi:radiator'

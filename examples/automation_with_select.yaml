@@ -1,0 +1,27 @@
+# Automation: populate input_select on startup and send reading using selected device
+
+alias: 'Populate device select on startup'
+trigger:
+  - platform: homeassistant
+    event: start
+action:
+  - service: heater_meter_logger.populate_device_select
+    data:
+      input_select: input_select.meter_device
+
+---
+
+alias: 'Send manual reading using selected device'
+trigger:
+  - platform: event
+    event_type: input_button_pressed
+    event_data:
+      entity_id: input_button.send_manual_reading
+action:
+  - service: heater_meter_logger.add_reading
+    data:
+      device_id: "{{ states('input_select.meter_device').split(' — ')[-1] }}"
+      value: "{{ states('input_number.manual_meter_input') | float }}"
+      timestamp: "{{ utcnow().isoformat() }}"
+
+# Hinweis: Wenn deine HA-Version input_button anders handhabt, passe den Trigger entsprechend an.

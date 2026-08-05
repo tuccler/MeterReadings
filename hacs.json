@@ -4,5 +4,6 @@
   "categories": ["integration"],
   "domains": ["sensor"],
   "zip_release": false,
-  "filename": "custom_components/heater_meter_logger"
+  "filename": "custom_components/heater_meter_logger",
+  "version": "0.1.0"
 }

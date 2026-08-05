@@ -101,16 +101,21 @@ Beispiele / UI-Automation
 
 - Beispiele zur manuellen Eingabe und Automation befinden sich im Ordner `examples/`:
   - `examples/input_entities.yaml` – Beispiel-Definitionen für `input_number.manual_meter_input` und `input_button.send_manual_reading`.
+  - `examples/input_select.yaml` – Beispiel `input_select.meter_device` zur Auswahl eines Geräts. Die Optionen werden über den Service `heater_meter_logger.populate_device_select` befüllt.
   - `examples/lovelace_manual_input.yaml` – Lovelace-Card-Beispiel (Entities Card) zur Anzeige und zum Auslösen einer manuellen Ablesung.
   - `examples/automation_add_reading.yaml` – Automation, die beim Drücken des Buttons den Service `heater_meter_logger.add_reading` aufruft. Ersetze in dieser Automation `"<your_device_id>"` durch die tatsächliche `device_id` deines Geräts (z. B. `local-abcdef12`).
+  - `examples/automation_with_select.yaml` – Automationen: (1) befüllt `input_select.meter_device` beim HA-Start, (2) sendet beim Button-Drücken die Ablesung für das ausgewählte Gerät.
 
 Anwendungsablauf (kurz):
 
 1. Lege per Integration (Einstellungen → Geräte & Dienste → +) ein initiales Gerät an.
-2. Leg die Input-Entities aus `examples/input_entities.yaml` an (oder per UI erzeugen).
+2. Lege die Input-Entities aus `examples/input_entities.yaml` an (oder per UI erzeugen) und das `input_select` aus `examples/input_select.yaml`.
 3. Füge die Lovelace-Card aus `examples/lovelace_manual_input.yaml` zu deinem Dashboard hinzu.
-4. Importiere die Automation aus `examples/automation_add_reading.yaml` und passe `device_id` an.
-5. Gib einen Wert in der Eingabe ein und drücke den Button — die Automation schreibt die Ablesung in die Integration.
+4. Importiere die Automation aus `examples/automation_with_select.yaml`.
+5. Beim HA-Start wird die `input_select.meter_device` automatisch mit vorhandenen Geräten befüllt.
+6. Gib einen Wert in der Eingabe ein und drücke den Button — die Automation schreibt die Ablesung in die Integration für das ausgewählte Gerät.
+
+Hinweis: Die `input_select`-Optionen haben das Format `<name> — <device_id>`. In der Automation wird der Device-ID-Teil automatisch extrahiert.
 
 ## Langzeit-Speicherung und Visualisierung (Prometheus / Grafana)
 
@@ -221,11 +226,12 @@ Passe `sensor.manual_meter_input` an das UI-Element oder Input-Number an, das du
 Für HACS-Distribution (empfohlen: GitHub Public Repository):
 
 1. Stelle sicher, dass `custom_components/heater_meter_logger/` und `hacs.json` im Root des Repos vorhanden sind.
-2. Erstelle ein Tag im Format `vX.Y.Z` (z. B. `v0.1.0`). HACS nutzt Tags zur Versionierung.
-3. Optional: Erstelle ein GitHub-Release (Tags lösen den Release-Workflow aus).
-4. HACS wird das Repo scannen und die neue Version als Release/Update erkennen.
+2. Aktuelle Version: 0.1.0. Die Integration manifestiert die Version in `custom_components/heater_meter_logger/manifest.json` und `hacs.json`.
+3. Erstelle ein Tag im Format `vX.Y.Z` (z. B. `v0.1.0`) und pushe es zu GitHub. HACS nutzt Tags zur Versionierung.
+4. Optional: Erstelle ein GitHub-Release (Tags lösen den Release-Workflow aus). Das mitgelieferte GitHub Action Workflow `.github/workflows/release.yml` erstellt bei Tag-Push ein Release und lädt ein ZIP-Archiv hoch.
+5. HACS wird das Repo scannen und die neue Version als Release/Update erkennen.
 
-Das Repository enthält eine Beispiel-GitHub Actions Workflow-Datei unter `.github/workflows/release.yml`, die bei einem Push eines Tags (`v*`) automatisch ein Release erstellt und ein ZIP-Archiv als Release-Asset hochlädt. Dies ist nicht zwingend erforderlich für HACS, hilft aber beim Veröffentlichen und Bereitstellen von Release-Artefakten.
+Hinweis: Das Commit-Tag `v0.1.0` signalisiert HACS, dass ein neues Release verfügbar ist. Stelle sicher, dass das Manifest in `custom_components/heater_meter_logger/manifest.json` die korrekte Version (`0.1.0`) enthält.
 
 ## Weiteres / ToDos
 

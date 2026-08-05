@@ -138,6 +138,84 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hass.services.async_register(DOMAIN, "delete_reading", async_service_delete_reading)
     hass.services.async_register(DOMAIN, "delete_device", async_service_delete_device)
 
+    async def async_service_export_data(call):
+        """Export devices and readings to a JSON file in the Home Assistant config directory or to a provided path."""
+        path = call.data.get("path")
+        conf = hass.config
+        import json, time
+
+        data = dict(entry.data)
+        payload = {"devices": data.get("devices", [])}
+        if not path:
+            filename = f"heater_meter_export_{int(time.time())}.json"
+            path = conf.path(filename)
+        try:
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump(payload, fh, ensure_ascii=False, indent=2)
+            _LOGGER.info("Heater Meter export written to %s", path)
+        except Exception as e:
+            _LOGGER.error("Failed to write export to %s: %s", path, e)
+
+    async def async_service_import_data(call):
+        """Import devices/readings from a JSON payload or file path. Merges into existing devices.
+        Service params: 'path' (file path) or 'json' (string with JSON payload)."""
+        import json, os
+
+        path = call.data.get("path")
+        json_payload = call.data.get("json")
+        payload = None
+        try:
+            if json_payload:
+                payload = json.loads(json_payload)
+            elif path and os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as fh:
+                    payload = json.load(fh)
+            else:
+                _LOGGER.error("import_data requires 'json' or existing 'path'")
+                return
+        except Exception as e:
+            _LOGGER.error("Failed to read import payload: %s", e)
+            return
+
+        if not isinstance(payload, dict) or "devices" not in payload:
+            _LOGGER.error("Import payload must be an object with a 'devices' list")
+            return
+
+        updated = dict(entry.data)
+        updated_devices = list(updated.get("devices", []))
+        # naive merge: append devices that do not have the same id
+        existing_ids = {d.get("id") for d in updated_devices}
+        for dev in payload.get("devices", []):
+            if dev.get("id") in existing_ids:
+                _LOGGER.info("Skipping device with existing id %s", dev.get("id"))
+                continue
+            updated_devices.append(dev)
+        updated["devices"] = updated_devices
+        hass.config_entries.async_update_entry(entry, data=updated)
+        coordinator.data = updated_devices
+        _LOGGER.info("Imported %d devices", len(payload.get("devices", [])))
+
+    async def async_service_populate_device_select(call):
+        """Populate an input_select entity with current devices.
+        Parameter: 'input_select' (entity_id of the input_select to populate).
+        Options are set as: '<name> — <device_id>'"""
+        input_select_entity = call.data.get("input_select")
+        if not input_select_entity:
+            _LOGGER.error("populate_device_select called without 'input_select' parameter")
+            return
+        devices = coordinator.data or []
+        options = [f"{d.get('name')} — {d.get('id')}" for d in devices]
+        # call input_select.set_options
+        await hass.services.async_call(
+            "input_select",
+            "set_options",
+            {"entity_id": input_select_entity, "options": options},
+        )
+
+    hass.services.async_register(DOMAIN, "export_data", async_service_export_data)
+    hass.services.async_register(DOMAIN, "import_data", async_service_import_data)
+    hass.services.async_register(DOMAIN, "populate_device_select", async_service_populate_device_select)
+
     hass.config_entries.async_setup_platforms(entry, PLATFORMS)
 
     return True
@@ -149,5 +227,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     hass.services.async_remove(DOMAIN, "add_reading")
     hass.services.async_remove(DOMAIN, "delete_reading")
     hass.services.async_remove(DOMAIN, "delete_device")
+    hass.services.async_remove(DOMAIN, "export_data")
+    hass.services.async_remove(DOMAIN, "import_data")
+    hass.services.async_remove(DOMAIN, "populate_device_select")
     hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok
