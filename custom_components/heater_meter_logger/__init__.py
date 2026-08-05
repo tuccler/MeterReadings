@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -43,7 +44,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         area = data.get("area")
         # create a new local device object and persist it to the entry
         import uuid
-        from datetime import datetime, timezone
 
         created_at = datetime.now(timezone.utc).isoformat()
         device_id = f"local-{uuid.uuid4().hex[:8]}"
@@ -73,7 +73,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         value = data.get("value")
         timestamp = data.get("timestamp")
         import uuid
-        from datetime import datetime, timezone
 
         ts = timestamp
         if ts is None:
@@ -92,8 +91,52 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         hass.config_entries.async_update_entry(entry, data=updated)
         coordinator.data = updated_devices
 
+    async def async_service_delete_reading(call):
+        data = call.data
+        device_id = data.get("device_id")
+        reading_id = data.get("reading_id")
+
+        if not device_id or not reading_id:
+            _LOGGER.warning("delete_reading called without device_id or reading_id")
+            return
+
+        updated = dict(entry.data)
+        updated_devices = list(updated.get("devices", []))
+        for d in updated_devices:
+            if d.get("id") == device_id:
+                readings = d.get("readings", [])
+                # filter out matching reading id
+                new_readings = [r for r in readings if str(r.get("id")) != str(reading_id)]
+                d["readings"] = new_readings
+                # update latest_reading to last reading if exists, else zero
+                if new_readings:
+                    last = sorted(new_readings, key=lambda x: x.get("timestamp"))[-1]
+                    d["latest_reading"] = {"value": last.get("value"), "timestamp": last.get("timestamp")}
+                else:
+                    ts = datetime.now(timezone.utc).isoformat()
+                    d["latest_reading"] = {"value": 0.0, "timestamp": ts}
+                break
+        updated["devices"] = updated_devices
+        hass.config_entries.async_update_entry(entry, data=updated)
+        coordinator.data = updated_devices
+
+    async def async_service_delete_device(call):
+        data = call.data
+        device_id = data.get("device_id")
+        if not device_id:
+            _LOGGER.warning("delete_device called without device_id")
+            return
+
+        updated = dict(entry.data)
+        updated_devices = [d for d in updated.get("devices", []) if d.get("id") != device_id]
+        updated["devices"] = updated_devices
+        hass.config_entries.async_update_entry(entry, data=updated)
+        coordinator.data = updated_devices
+
     hass.services.async_register(DOMAIN, "add_device", async_service_add_device)
     hass.services.async_register(DOMAIN, "add_reading", async_service_add_reading)
+    hass.services.async_register(DOMAIN, "delete_reading", async_service_delete_reading)
+    hass.services.async_register(DOMAIN, "delete_device", async_service_delete_device)
 
     hass.config_entries.async_setup_platforms(entry, PLATFORMS)
 
@@ -104,5 +147,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     hass.services.async_remove(DOMAIN, "add_device")
     hass.services.async_remove(DOMAIN, "add_reading")
+    hass.services.async_remove(DOMAIN, "delete_reading")
+    hass.services.async_remove(DOMAIN, "delete_device")
     hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok

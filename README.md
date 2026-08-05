@@ -88,11 +88,29 @@ Services (unter dem Integrations-Domain-Namen verfügbar):
 
 - `heater_meter_logger.add_device` - Parameter: `name` (string), `area` (string)
 - `heater_meter_logger.add_reading` - Parameter: `device_id` (string), `value` (number), `timestamp` (optional ISO8601 string)
+- `heater_meter_logger.delete_reading` - Parameter: `device_id` (string), `reading_id` (string)
+- `heater_meter_logger.delete_device` - Parameter: `device_id` (string)
 
 Anmerkungen:
 
-- Historische Werte werden in der Addon-DB gespeichert; die Integration zeigt per Sensor nur den aktuellen Wert an. Grafana/Scraping sollte auf den Addon `/metrics`-Endpoint zugreifen, um Zeitreihen zu sammeln.
+- Alle Geräte und Ablesungen werden lokal in der Integration (Config-Entry) gespeichert. Es gibt keine automatische Kommunikation mit einem externen Addon.
+- Historische Werte werden in der Addon-DB (Addon-Mode) oder in der Integration (local-only) gespeichert; die Integration zeigt per Sensor nur den aktuellen Wert an. Grafana/Scraping sollte auf den Addon `/metrics`-Endpoint zugreifen, um Zeitreihen zu sammeln.
 - HACS erkennt das Repository als Integration dank `hacs.json` und dem Ordner `custom_components/`.
+
+Beispiele / UI-Automation
+
+- Beispiele zur manuellen Eingabe und Automation befinden sich im Ordner `examples/`:
+  - `examples/input_entities.yaml` – Beispiel-Definitionen für `input_number.manual_meter_input` und `input_button.send_manual_reading`.
+  - `examples/lovelace_manual_input.yaml` – Lovelace-Card-Beispiel (Entities Card) zur Anzeige und zum Auslösen einer manuellen Ablesung.
+  - `examples/automation_add_reading.yaml` – Automation, die beim Drücken des Buttons den Service `heater_meter_logger.add_reading` aufruft. Ersetze in dieser Automation `"<your_device_id>"` durch die tatsächliche `device_id` deines Geräts (z. B. `local-abcdef12`).
+
+Anwendungsablauf (kurz):
+
+1. Lege per Integration (Einstellungen → Geräte & Dienste → +) ein initiales Gerät an.
+2. Leg die Input-Entities aus `examples/input_entities.yaml` an (oder per UI erzeugen).
+3. Füge die Lovelace-Card aus `examples/lovelace_manual_input.yaml` zu deinem Dashboard hinzu.
+4. Importiere die Automation aus `examples/automation_add_reading.yaml` und passe `device_id` an.
+5. Gib einen Wert in der Eingabe ein und drücke den Button — die Automation schreibt die Ablesung in die Integration.
 
 ## Langzeit-Speicherung und Visualisierung (Prometheus / Grafana)
 

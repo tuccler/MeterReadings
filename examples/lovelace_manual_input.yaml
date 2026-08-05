@@ -1,0 +1,13 @@
+# Lovelace example: a small card with an input number and a button to send the reading
+cards:
+  - type: entities
+    title: Heizkostenverteiler - Manuelle Ablesung
+    entities:
+      - entity: input_number.manual_meter_input
+        name: 'Wert (letzte Ablesung)'
+      - entity: input_button.send_manual_reading
+        name: 'Ablesung senden'
+
+# Hinweis:
+# - Lege die Input-Entities (siehe examples/input_entities.yaml) in deiner configuration.yaml an oder erstelle sie per UI.
+# - Die Automation examples/automation_add_reading.yaml zeigt, wie beim Drücken des Buttons der Service aufgerufen wird.

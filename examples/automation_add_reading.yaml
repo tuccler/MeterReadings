@@ -1,0 +1,20 @@
+# Automation-Beispiel: beim Drücken des Buttons wird die Ablesung an die Integration geschickt.
+# Ersetze <your_device_id> durch die device_id (z.B. local-xxxxxxxx) deines Geräts aus der Integration.
+
+alias: "Manuelle Ablesung senden"
+trigger:
+  - platform: event
+    event_type: input_button_pressed
+    event_data:
+      entity_id: input_button.send_manual_reading
+
+action:
+  - service: heater_meter_logger.add_reading
+    data:
+      device_id: "<your_device_id>"
+      value: "{{ states('input_number.manual_meter_input') | float }}"
+      timestamp: "{{ utcnow().isoformat() }}"
+
+# Hinweise:
+# - Einige Home Assistant Versionen senden für input_button ein anderes Event/Trigger; alternativ kannst du die Automation auf state change der button entity triggern, oder einen Script-Call (Button → Script).
+# - Falls input_button in deiner HA-Version nicht verfügbar ist: benutze ein Script in Lovelace oder einen Input_boolean und trigger die Automation beim Wechsel auf 'on'.
