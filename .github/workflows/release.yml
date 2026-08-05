@@ -1,0 +1,47 @@
+name: Release for HACS
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build_and_release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python (for potential checks)
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Create release zip
+        run: |
+          mkdir -p release
+          # include custom_components and hacs.json and README
+          zip -r release/release.zip custom_components hacs.json README.md build.json Dockerfile run.py requirements.txt || true
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            Release ${{ github.ref_name }} for Heater Meter Logger integration/addon.
+            
+            - HACS compatible custom integration in `custom_components/heater_meter_logger`
+            - Addon for collecting and exposing meter readings via HTTP API
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release artifact
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/release.zip
+          asset_name: heater-meter-logger-${{ github.ref_name }}.zip
+          asset_content_type: application/zip

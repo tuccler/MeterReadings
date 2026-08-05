@@ -1,0 +1,58 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "#00ff00",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Heater Meter Values",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "heater_meter_value{device_id=~\"$device\"}",
+          "legendFormat": "{{name}} ({{area}})",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "type": "stat",
+      "title": "Latest Value",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "last_over_time(heater_meter_value{device_id=~\"$device\"}[30d])",
+          "refId": "B"
+        }
+      ],
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 8 }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "device",
+        "datasource": "Prometheus",
+        "query": "label_values(heater_meter_value, device_id)",
+        "multi": false,
+        "includeAll": false,
+        "allValue": ""
+      }
+    ]
+  },
+  "title": "Heater Meter Dashboard",
+  "schemaVersion": 36,
+  "version": 1
+}

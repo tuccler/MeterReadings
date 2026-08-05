@@ -168,14 +168,48 @@ def delete_reading(device_id, reading_id):
 @app.route("/metrics", methods=["GET"])
 def metrics():
     db = get_db()
-    devices = db.execute("SELECT d.id, d.name, d.area, r.value FROM devices d JOIN readings r ON r.device_id = d.id WHERE r.id IN (SELECT id FROM readings WHERE device_id = d.id ORDER BY timestamp DESC, id DESC LIMIT 1)").fetchall()
+    devices = db.execute("SELECT id, name, area FROM devices ORDER BY id").fetchall()
+
     lines = [
-        "# HELP heater_meter_current_value Aktueller Ablesewert des Heizkostenverteilers.",
-        "# TYPE heater_meter_current_value gauge",
+        "# HELP heater_meter_value Gauge. Aktueller Ablesewert des Heizkostenverteilers.",
+        "# TYPE heater_meter_value gauge",
+        "# HELP heater_meter_last_reading_timestamp_seconds Gauge. Unix-Epoch Zeit der letzten Ablesung.",
+        "# TYPE heater_meter_last_reading_timestamp_seconds gauge",
+        "# HELP heater_meter_readings_count Gauge. Anzahl gespeicherter Ablesungen pro Gerät.",
+        "# TYPE heater_meter_readings_count gauge",
     ]
+
     for device in devices:
-        labels = f'name=\"{device["name"]}\",area=\"{device["area"]}\",device_id=\"{device["id"]}\"'
-        lines.append(f'heater_meter_current_value{{{labels}}} {device["value"]}')
+        device_id = device["id"]
+        name = device["name"]
+        area = device["area"]
+
+        # latest reading
+        latest = db.execute(
+            "SELECT value, timestamp FROM readings WHERE device_id = ? ORDER BY timestamp DESC, id DESC LIMIT 1",
+            (device_id,),
+        ).fetchone()
+
+        # readings count
+        cnt_row = db.execute("SELECT COUNT(*) as cnt FROM readings WHERE device_id = ?", (device_id,)).fetchone()
+        readings_count = cnt_row["cnt"] if cnt_row is not None else 0
+
+        value = latest["value"] if latest is not None else 0.0
+        timestamp_iso = latest["timestamp"] if latest is not None else None
+        ts_seconds = "0"
+        if timestamp_iso:
+            try:
+                # timestamp is stored as ISO with timezone (UTC)
+                dt = datetime.fromisoformat(timestamp_iso.replace("Z", "+00:00"))
+                ts_seconds = str(int(dt.replace(tzinfo=timezone.utc).timestamp()))
+            except Exception:
+                ts_seconds = "0"
+
+        labels = f'name="{name}",area="{area}",device_id="{device_id}"'
+        lines.append(f'heater_meter_value{{{labels}}} {value}')
+        lines.append(f'heater_meter_last_reading_timestamp_seconds{{{labels}}} {ts_seconds}')
+        lines.append(f'heater_meter_readings_count{{{labels}}} {readings_count}')
+
     return "\n".join(lines) + "\n", 200, {"Content-Type": "text/plain; version=0.0.4"}
 
 
