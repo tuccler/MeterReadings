@@ -165,6 +165,62 @@ def delete_reading(device_id, reading_id):
     return jsonify({"deleted": reading_id})
 
 
+@app.route("/export", methods=["GET"])
+def export_all():
+    """Export all devices with their readings as JSON."""
+    db = get_db()
+    devices = db.execute("SELECT * FROM devices ORDER BY id").fetchall()
+    out = []
+    for d in devices:
+        dev = row_to_dict(d)
+        readings = db.execute(
+            "SELECT * FROM readings WHERE device_id = ? ORDER BY timestamp DESC, id DESC",
+            (d["id"],),
+        ).fetchall()
+        dev["readings"] = [row_to_dict(r) for r in readings]
+        out.append(dev)
+    return jsonify({"devices": out})
+
+
+@app.route("/import", methods=["POST"])
+def import_data():
+    """Import devices + readings from JSON payload. Payload format: { "devices": [ { "name":..., "area":..., "readings": [ {"value":.., "timestamp":...}, ... ] }, ... ] }
+    New devices are created; readings are inserted. Returns list of created device IDs.
+    """
+    payload = request.get_json(silent=True)
+    if not payload or not isinstance(payload, dict) or "devices" not in payload:
+        return jsonify({"error": "Payload must be JSON with a 'devices' list."}), 400
+
+    db = get_db()
+    created = []
+    for dev in payload.get("devices", []):
+        name = dev.get("name")
+        area = dev.get("area")
+        if not name or not area:
+            continue
+        created_at = datetime.now(timezone.utc).isoformat()
+        cursor = db.execute(
+            "INSERT INTO devices (name, area, created_at) VALUES (?, ?, ?)",
+            (name, area, created_at),
+        )
+        device_id = cursor.lastrowid
+        created.append(device_id)
+        # insert readings if provided
+        for r in dev.get("readings", []):
+            value = r.get("value")
+            ts = r.get("timestamp") or created_at
+            # validate timestamp
+            parsed = parse_timestamp(ts)
+            if parsed is None:
+                parsed = created_at
+            db.execute(
+                "INSERT INTO readings (device_id, value, timestamp, created_at) VALUES (?, ?, ?, ?)",
+                (device_id, float(value), parsed, created_at),
+            )
+    db.commit()
+    return jsonify({"created_device_ids": created}), 201
+
+
 @app.route("/metrics", methods=["GET"])
 def metrics():
     db = get_db()

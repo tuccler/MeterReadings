@@ -233,6 +233,21 @@ Für HACS-Distribution (empfohlen: GitHub Public Repository):
 
 Hinweis: Das Commit-Tag `v0.1.0` signalisiert HACS, dass ein neues Release verfügbar ist. Stelle sicher, dass das Manifest in `custom_components/heater_meter_logger/manifest.json` die korrekte Version (`0.1.0`) enthält.
 
+## Addon HTTP Export/Import Endpoints
+
+Das Addon bietet jetzt zwei HTTP-Endpunkte zum Datenaustausch:
+
+- GET /export — liefert alle Geräte mit eingebetteten Ablesungen im JSON-Format:
+  {
+    "devices": [ { "id": 1, "name": "Wohnzimmer", "area": "EG", "created_at": "...", "readings": [ {...}, ... ] }, ... ]
+  }
+
+- POST /import — erwartet ein JSON-Payload im gleichen Format (key: devices). Für jedes Gerät im Payload wird ein neues Gerät in der Addon-DB angelegt und die enthaltenen Ablesungen werden eingefügt. Rückgabe: { "created_device_ids": [ ... ] }
+
+Hinweis: Importiert werden jeweils neue Geräte (mit neuen numerischen IDs); es erfolgt keine automatische Duplikatserkennung außer der Pflichtfelder `name` und `area`.
+
+Diese Endpunkte erleichtern die Synchronisation zwischen dem Addon und anderen Systemen (z. B. Backup/Restore oder Bulk-Import über JSON). Die Integration bietet ebenfalls `export_data`/`import_data` Services von der HA-Seite aus — nutze entweder die Addon-API oder die Integration-Services je nach Workflow.
+
 ## Weiteres / ToDos
 
 - Optional: Endpoint-Authentifizierung (API-Key) hinzufügen, falls dein Addon nicht lokal frei zugänglich sein soll.
