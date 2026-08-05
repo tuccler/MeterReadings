@@ -1,0 +1,8 @@
+{
+  "build": {
+    "build_context": ".",
+    "image": "homeassistant/amd64-builder",
+    "repository": "local",
+    "tag": "latest"
+  }
+}

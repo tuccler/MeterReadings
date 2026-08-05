@@ -1,0 +1,186 @@
+import json
+import os
+import sqlite3
+from datetime import datetime, timezone
+from flask import Flask, jsonify, request, g, abort
+from flask_cors import CORS
+
+DATA_DIR = "/data"
+DB_PATH = os.path.join(DATA_DIR, "meter_readings.db")
+
+app = Flask(__name__)
+CORS(app)
+
+os.makedirs(DATA_DIR, exist_ok=True)
+
+SCHEMA = {
+    "devices": "CREATE TABLE IF NOT EXISTS devices (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, area TEXT NOT NULL, created_at TEXT NOT NULL)",
+    "readings": "CREATE TABLE IF NOT EXISTS readings (id INTEGER PRIMARY KEY AUTOINCREMENT, device_id INTEGER NOT NULL, value REAL NOT NULL, timestamp TEXT NOT NULL, created_at TEXT NOT NULL, FOREIGN KEY(device_id) REFERENCES devices(id) ON DELETE CASCADE)"
+}
+
+
+def get_db():
+    db = getattr(g, "db", None)
+    if db is None:
+        db = sqlite3.connect(DB_PATH, detect_types=sqlite3.PARSE_DECLTYPES)
+        db.row_factory = sqlite3.Row
+        db.execute("PRAGMA foreign_keys = ON")
+        g.db = db
+    return db
+
+
+def init_db():
+    db = get_db()
+    for sql in SCHEMA.values():
+        db.execute(sql)
+    db.commit()
+
+
+@app.teardown_appcontext
+def close_db(exception=None):
+    db = getattr(g, "db", None)
+    if db is not None:
+        db.close()
+
+
+def validate_device_payload(payload):
+    if not isinstance(payload, dict):
+        return False
+    return bool(payload.get("name")) and bool(payload.get("area"))
+
+
+def validate_reading_payload(payload):
+    if not isinstance(payload, dict):
+        return False
+    return payload.get("value") is not None
+
+
+def parse_timestamp(value):
+    if value is None:
+        return datetime.now(timezone.utc).isoformat()
+    if isinstance(value, str):
+        try:
+            dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return dt.astimezone(timezone.utc).isoformat()
+        except ValueError:
+            pass
+    return None
+
+
+def row_to_dict(row):
+    return {key: row[key] for key in row.keys()}
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok"})
+
+
+@app.route("/devices", methods=["GET"])
+def list_devices():
+    db = get_db()
+    devices = db.execute("SELECT * FROM devices ORDER BY id").fetchall()
+    return jsonify([row_to_dict(device) for device in devices])
+
+
+@app.route("/devices", methods=["POST"])
+def create_device():
+    data = request.get_json(silent=True)
+    if not validate_device_payload(data):
+        return jsonify({"error": "Payload must include name and area."}), 400
+
+    created_at = datetime.now(timezone.utc).isoformat()
+    db = get_db()
+    cursor = db.execute(
+        "INSERT INTO devices (name, area, created_at) VALUES (?, ?, ?)",
+        (data["name"], data["area"], created_at),
+    )
+    device_id = cursor.lastrowid
+    db.execute(
+        "INSERT INTO readings (device_id, value, timestamp, created_at) VALUES (?, ?, ?, ?)",
+        (device_id, 0.0, created_at, created_at),
+    )
+    db.commit()
+    device = db.execute("SELECT * FROM devices WHERE id = ?", (device_id,)).fetchone()
+    return jsonify(row_to_dict(device)), 201
+
+
+@app.route("/devices/<int:device_id>", methods=["GET"])
+def get_device(device_id):
+    db = get_db()
+    device = db.execute("SELECT * FROM devices WHERE id = ?", (device_id,)).fetchone()
+    if device is None:
+        abort(404)
+    return jsonify(row_to_dict(device))
+
+
+@app.route("/devices/<int:device_id>/readings", methods=["GET"])
+def list_readings(device_id):
+    db = get_db()
+    device = db.execute("SELECT id FROM devices WHERE id = ?", (device_id,)).fetchone()
+    if device is None:
+        abort(404)
+    readings = db.execute(
+        "SELECT * FROM readings WHERE device_id = ? ORDER BY timestamp DESC, id DESC",
+        (device_id,),
+    ).fetchall()
+    return jsonify([row_to_dict(reading) for reading in readings])
+
+
+@app.route("/devices/<int:device_id>/readings", methods=["POST"])
+def create_reading(device_id):
+    data = request.get_json(silent=True)
+    if not validate_reading_payload(data):
+        return jsonify({"error": "Payload must include value."}), 400
+
+    timestamp = parse_timestamp(data.get("timestamp"))
+    if timestamp is None:
+        return jsonify({"error": "Invalid ISO timestamp."}), 400
+
+    db = get_db()
+    device = db.execute("SELECT id FROM devices WHERE id = ?", (device_id,)).fetchone()
+    if device is None:
+        abort(404)
+
+    created_at = datetime.now(timezone.utc).isoformat()
+    cursor = db.execute(
+        "INSERT INTO readings (device_id, value, timestamp, created_at) VALUES (?, ?, ?, ?)",
+        (device_id, float(data["value"]), timestamp, created_at),
+    )
+    db.commit()
+    reading = db.execute("SELECT * FROM readings WHERE id = ?", (cursor.lastrowid,)).fetchone()
+    return jsonify(row_to_dict(reading)), 201
+
+
+@app.route("/devices/<int:device_id>/readings/<int:reading_id>", methods=["DELETE"])
+def delete_reading(device_id, reading_id):
+    db = get_db()
+    result = db.execute(
+        "DELETE FROM readings WHERE id = ? AND device_id = ?",
+        (reading_id, device_id),
+    )
+    if result.rowcount == 0:
+        abort(404)
+    db.commit()
+    return jsonify({"deleted": reading_id})
+
+
+@app.route("/metrics", methods=["GET"])
+def metrics():
+    db = get_db()
+    devices = db.execute("SELECT d.id, d.name, d.area, r.value FROM devices d JOIN readings r ON r.device_id = d.id WHERE r.id IN (SELECT id FROM readings WHERE device_id = d.id ORDER BY timestamp DESC, id DESC LIMIT 1)").fetchall()
+    lines = [
+        "# HELP heater_meter_current_value Aktueller Ablesewert des Heizkostenverteilers.",
+        "# TYPE heater_meter_current_value gauge",
+    ]
+    for device in devices:
+        labels = f'name=\"{device["name"]}\",area=\"{device["area"]}\",device_id=\"{device["id"]}\"'
+        lines.append(f'heater_meter_current_value{{{labels}}} {device["value"]}')
+    return "\n".join(lines) + "\n", 200, {"Content-Type": "text/plain; version=0.0.4"}
+
+
+if __name__ == "__main__":
+    with app.app_context():
+        init_db()
+    port = int(os.environ.get("SERVER_PORT", "8100"))
+    app.run(host="0.0.0.0", port=port)

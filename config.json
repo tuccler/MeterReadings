@@ -1,0 +1,25 @@
+{
+  "name": "Heizkostenverteiler Dokumentation",
+  "version": "1.0.0",
+  "slug": "heater-meter-logger",
+  "description": "Addon zur Dokumentation von Heizkostenverteiler-Ablesewerten mit Langzeitarchiv und Grafana-kompatibler Metriken-Schnittstelle.",
+  "arch": ["amd64", "armv7", "armhf", "aarch64"],
+  "startup": "services",
+  "boot": "auto",
+  "host_network": false,
+  "ingress": false,
+  "panel_icon": "mdi:radiator",
+  "ports": {
+    "8100": 8100
+  },
+  "options": {
+    "server_port": 8100
+  },
+  "schema": {
+    "server_port": "int"
+  },
+  "environment": {
+    "SERVER_PORT": "8100"
+  },
+  "webui": "http://[HOST]:[PORT:8100]"
+}
