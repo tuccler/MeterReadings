@@ -76,7 +76,7 @@ Installation via HACS (lokales Repo oder GitHub):
 1. Wenn das Repo auf GitHub liegt: füge es in HACS (Integrationen -> + -> Suche nach deinem Repo oder "Custom repositories" und Kategorie "Integration").
 2. Wenn lokal: kopiere den Ordner `custom_components/heater_meter_logger` in `config/custom_components/` deines Home Assistant (nur für Tests, für HACS-Installation nutze GitHub).
 3. Nach Installation: Neustart von Home Assistant.
-4. Integration konfigurieren: Einstellungen -> Geräte & Dienste -> Integration hinzufügen -> "Heater Meter Logger". Im Setup werden Host (IP/DNS) und Port (Standard 8100) abgefragt — dies ist die Adresse des laufenden Addons (z. B. `core-ssh`/Supervisor-Host oder IP des Hosts).
+4. Integration konfigurieren: Einstellungen -> Geräte & Dienste -> Integration hinzufügen -> "Heater Meter Logger". Im Setup wirst du nach einem initialen Messgerät (Name und Bereich) gefragt; es werden keine Host- oder Port-Angaben benötigt.
 
 Welche Entitäten werden erstellt:
 
@@ -93,16 +93,6 @@ Anmerkungen:
 
 - Historische Werte werden in der Addon-DB gespeichert; die Integration zeigt per Sensor nur den aktuellen Wert an. Grafana/Scraping sollte auf den Addon `/metrics`-Endpoint zugreifen, um Zeitreihen zu sammeln.
 - HACS erkennt das Repository als Integration dank `hacs.json` und dem Ordner `custom_components/`.
-
-## Config-Flow Validierung
-
-Die Konfigurationsoberfläche prüft nun beim Anlegen der Integration, ob die angegebene Host:Port-Kombination erreichbar ist. Es wird ein Test-Request an `http://<host>:<port>/devices` ausgeführt. Fehler, die im UI angezeigt werden können:
-
-- `cannot_connect` – keine Verbindung möglich
-- `timeout` – Verbindung überschreitet das Timeout
-- `invalid_response` – Endpoint antwortet, liefert aber kein gültiges JSON
-
-Wenn ein Fehler auftritt, wird die Konfiguration nicht gespeichert und du kannst die Eingaben korrigieren.
 
 ## Langzeit-Speicherung und Visualisierung (Prometheus / Grafana)
 

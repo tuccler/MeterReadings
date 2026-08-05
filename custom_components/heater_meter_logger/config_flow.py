@@ -2,13 +2,10 @@ from __future__ import annotations
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.core import callback
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-import asyncio
 from datetime import datetime, timezone
 import uuid
 
-from .const import DOMAIN, CONF_HOST, CONF_PORT, DEFAULT_PORT
+from .const import DOMAIN
 
 # New flow: ask for initial device (name + area)
 STEP_USER_DATA_SCHEMA = vol.Schema({
@@ -22,8 +19,7 @@ class HeaterMeterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         """
-        Ask the user for an initial device instead of host/port.
-        The integration will not require host/port at install time.
+        Ask the user for an initial device. No host/port required.
         """
         if user_input is None:
             return self.async_show_form(step_id="user", data_schema=STEP_USER_DATA_SCHEMA)
@@ -43,7 +39,6 @@ class HeaterMeterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         }
 
         entry_data = {
-            # no host/port by default; integration works in "local-only" mode until host is configured
             "devices": [device]
         }
 
