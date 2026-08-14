@@ -3,7 +3,6 @@
   "description": "Integration to manage heat cost allocators and manual readings",
   "categories": ["integration"],
   "domains": ["sensor"],
-  "zip_release": false,
-  "filename": "custom_components/heat_cost_allocator",
-  "version": "0.2.0"
+  "homeassistant": "2024.1.0",
+  "version": "0.2.1"
 }
