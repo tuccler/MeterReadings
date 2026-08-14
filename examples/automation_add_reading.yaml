@@ -9,7 +9,7 @@ trigger:
       entity_id: input_button.send_manual_reading
 
 action:
-  - service: heater_meter_logger.add_reading
+  - service: heat_cost_allocator.set_current_reading
     data:
       device_id: "<your_device_id>"
       value: "{{ states('input_number.manual_meter_input') | float }}"

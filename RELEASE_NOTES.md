@@ -1,19 +1,17 @@
-Heater Meter Logger — Release Notes
+Heat Cost Allocator — Release Notes
 
 Minimum Home Assistant: 2024.1.0
 
-Version 0.1.0
+Version 0.2.0
 
-- New: Integration operates in local-only mode (no host/port). Devices and readings are managed and persisted in the Integration Config-Entry.
+- New: Custom integration `heat_cost_allocator` to manage heat cost allocators and manual readings.
+- New: Each device exposes two sensors: current monthly reading and yearly total. Values are whole numbers entered manually.
 - New: Config Flow now asks for an initial device (name + area) and creates an initial reading with value 0.
 - New: Services in the integration:
-  - heater_meter_logger.add_device
-  - heater_meter_logger.add_reading
-  - heater_meter_logger.delete_reading
-  - heater_meter_logger.delete_device
-  - heater_meter_logger.export_data (exports to HA config folder or provided path)
-  - heater_meter_logger.import_data (import from JSON payload or file)
-  - heater_meter_logger.populate_device_select (fills an input_select with current devices)
+  - heat_cost_allocator.add_device
+  - heat_cost_allocator.set_current_reading
+  - heat_cost_allocator.set_yearly_total
+  - heat_cost_allocator.remove_device
 - New: Addon HTTP API endpoints:
   - GET /export -> returns JSON with devices and nested readings
   - POST /import -> accepts JSON payload to create devices + readings in addon DB
@@ -30,15 +28,15 @@ How to create & push a Git tag (PowerShell example)
 # from repo root (PowerShell)
 # set user-visible tag
 git add -A
-git commit -m "Release 0.1.0: local-only integration, export/import & UI examples"
+git commit -m "Release 0.2.0: heat_cost_allocator integration"
 
-git tag v0.1.0
+git tag v0.2.0
 git push origin main
 git push origin v0.1.0
 
 Notes for HACS
-- Ensure `custom_components/heater_meter_logger/manifest.json` contains version "0.1.0" (already set)
-- Ensure `hacs.json` contains "version": "0.1.0"
+- Ensure `custom_components/heat_cost_allocator/manifest.json` contains version "0.2.0"
+- Ensure `hacs.json` contains "version": "0.2.0"
 - After pushing the tag, HACS will detect the new release.
 
 If you want, use the helper script `git-tag-and-push.ps1` (PowerShell) to run the commit/tag/push sequence automatically:
