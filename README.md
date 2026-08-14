@@ -78,7 +78,7 @@ Installation via HACS (lokales Repo oder GitHub):
 1. Wenn das Repo auf GitHub liegt: füge es in HACS (Integrationen -> + -> Suche nach deinem Repo oder "Custom repositories" und Kategorie "Integration").
 2. Wenn lokal: kopiere den Ordner `custom_components/heat_cost_allocator` in `config/custom_components/` deines Home Assistant (nur für Tests, für HACS-Installation nutze GitHub).
 3. Nach Installation: Neustart von Home Assistant.
-4. Integration konfigurieren: Einstellungen -> Geräte & Dienste -> Integration hinzufügen -> "Heater Meter Logger". Im Setup wirst du nach einem initialen Messgerät (Name und Bereich) gefragt; es werden keine Host- oder Port-Angaben benötigt.
+4. Integration konfigurieren: Einstellungen -> Geräte & Dienste -> Integration hinzufügen -> "Heater Meter Logger". Das Setup startet leer; Geräte werden anschließend über die Services oder das Addon verwaltet, ohne dass ein Dummy-Gerät beim Initialisieren angelegt werden muss.
 
 Welche Entitäten werden erstellt:
 
