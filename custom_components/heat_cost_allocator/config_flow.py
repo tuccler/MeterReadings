@@ -5,34 +5,31 @@ import uuid
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.helpers import area_registry as ar
 
 from .const import DOMAIN
-
-DEVICE_AREA_OPTIONS = [
-    "EG",
-    "OG",
-    "DG",
-    "Living Room",
-    "Kitchen",
-    "Bedroom",
-    "Office",
-    "Other",
-]
-
-STEP_USER_DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required("device_name"): str,
-        vol.Required("device_area", default="EG"): vol.In(DEVICE_AREA_OPTIONS),
-    }
-)
 
 
 class HeatCostConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
+    def _area_options(self):
+        area_registry = ar.async_get(self.hass)
+        areas = area_registry.async_list_areas()
+        return sorted({area.name for area in areas if area.name})
+
+    def _schema(self):
+        area_options = self._area_options()
+        return vol.Schema(
+            {
+                vol.Required("device_name"): str,
+                vol.Required("device_area", default=area_options[0] if area_options else ""): vol.In(area_options) if area_options else str,
+            }
+        )
+
     async def async_step_user(self, user_input=None):
         if user_input is None:
-            return self.async_show_form(step_id="user", data_schema=STEP_USER_DATA_SCHEMA)
+            return self.async_show_form(step_id="user", data_schema=self._schema())
 
         name = user_input.get("device_name", "").strip()
         area = user_input.get("device_area", "")
@@ -40,7 +37,7 @@ class HeatCostConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if not name:
             return self.async_show_form(
                 step_id="user",
-                data_schema=STEP_USER_DATA_SCHEMA,
+                data_schema=self._schema(),
                 errors={"base": "invalid_device_name"},
             )
 
