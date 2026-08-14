@@ -3,25 +3,11 @@ from datetime import datetime, timezone
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import DOMAIN
+from .const import DOMAIN, PLATFORMS
 
 _LOGGER = logging.getLogger(__name__)
-
-PLATFORMS = ["sensor"]
-
-
-class SimpleCoordinator:
-    """Minimal coordinator-like object for local-only mode."""
-
-    def __init__(self, hass, data):
-        self.hass = hass
-        self.data = data
-
-    async def async_refresh(self):
-        # nothing to refresh for local-only stored data
-        return True
-
 
 async def async_setup(hass: HomeAssistant, config: dict):
     hass.data.setdefault(DOMAIN, {})
@@ -33,7 +19,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     Always operate in local-only mode. Devices and readings are stored in the integration config entry.
     """
     devices = entry.data.get("devices", [])
-    coordinator = SimpleCoordinator(hass, devices)
+
+    async def async_update_data():
+        # Return current devices from the config entry data.
+        return entry.data.get("devices", [])
+
+    coordinator = DataUpdateCoordinator(hass, _LOGGER, name=DOMAIN, update_method=async_update_data)
+    # seed initial data
+    coordinator.async_set_updated_data(devices)
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {"coordinator": coordinator}
 
@@ -65,7 +58,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         hass.config_entries.async_update_entry(entry, data=updated)
 
         # refresh in-memory coordinator data
-        coordinator.data = updated_devices
+        coordinator.async_set_updated_data(updated_devices)
 
     async def async_service_add_reading(call):
         data = call.data
@@ -89,7 +82,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                 break
         updated["devices"] = updated_devices
         hass.config_entries.async_update_entry(entry, data=updated)
-        coordinator.data = updated_devices
+        coordinator.async_set_updated_data(updated_devices)
 
     async def async_service_delete_reading(call):
         data = call.data
@@ -118,7 +111,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                 break
         updated["devices"] = updated_devices
         hass.config_entries.async_update_entry(entry, data=updated)
-        coordinator.data = updated_devices
+        coordinator.async_set_updated_data(updated_devices)
 
     async def async_service_delete_device(call):
         data = call.data
@@ -131,7 +124,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         updated_devices = [d for d in updated.get("devices", []) if d.get("id") != device_id]
         updated["devices"] = updated_devices
         hass.config_entries.async_update_entry(entry, data=updated)
-        coordinator.data = updated_devices
+        coordinator.async_set_updated_data(updated_devices)
 
     hass.services.async_register(DOMAIN, "add_device", async_service_add_device)
     hass.services.async_register(DOMAIN, "add_reading", async_service_add_reading)
@@ -192,7 +185,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             updated_devices.append(dev)
         updated["devices"] = updated_devices
         hass.config_entries.async_update_entry(entry, data=updated)
-        coordinator.data = updated_devices
+        coordinator.async_set_updated_data(updated_devices)
         _LOGGER.info("Imported %d devices", len(payload.get("devices", [])))
 
     async def async_service_populate_device_select(call):
@@ -216,7 +209,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hass.services.async_register(DOMAIN, "import_data", async_service_import_data)
     hass.services.async_register(DOMAIN, "populate_device_select", async_service_populate_device_select)
 
-    # Forward setup to platforms (use async_forward_entry_setup per HA API)
+    # Forward setup to platforms using the Home Assistant entry forwarding API.
     for platform in PLATFORMS:
         await hass.config_entries.async_forward_entry_setup(entry, platform)
 

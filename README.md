@@ -2,6 +2,8 @@
 
 Dieses Home Assistant Addon erlaubt die Dokumentation und Verwaltung von Heizkostenverteiler-Ablesewerten.
 
+Minimum Home Assistant: 2024.1.0 — this release removes legacy compatibility shims for older HA versions.
+
 ## Funktionen
 - Geräte anlegen mit Namen, Bereich und initialem Stichtagswert 0
 - Manuelle Ablesungen für Geräte erfassen

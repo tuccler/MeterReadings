@@ -8,5 +8,5 @@
   "codeowners": ["@tuccler"],
   "config_flow": true,
   "iot_class": "local_polling",
-  "homeassistant": "2022.12.0"
+  "homeassistant": "2024.1.0"
 }

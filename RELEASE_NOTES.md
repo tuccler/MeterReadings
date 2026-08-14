@@ -1,5 +1,7 @@
 Heater Meter Logger — Release Notes
 
+Minimum Home Assistant: 2024.1.0
+
 Version 0.1.0
 
 - New: Integration operates in local-only mode (no host/port). Devices and readings are managed and persisted in the Integration Config-Entry.
@@ -19,6 +21,9 @@ Version 0.1.0
 - New: Grafana example dashboard and provisioning files included under grafana/
 - New: Examples for manual UI input and automations under examples/
 - New: Import/export helpers so addon and integration can exchange data via JSON
+
+Compatibility notes:
+- This release targets Home Assistant 2024.1.0 and newer. Legacy compatibility shims for older Home Assistant versions have been removed.
 
 How to create & push a Git tag (PowerShell example)
 
