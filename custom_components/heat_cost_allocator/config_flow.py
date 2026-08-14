@@ -21,19 +21,14 @@ class HeatCostConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _get_schema(self):
         area_options = self._area_options()
-        default_area = area_options[0] if area_options else ""
+        schema = {vol.Required("device_name"): str}
 
         if area_options:
-            area_field = vol.Required("device_area", default=default_area): vol.In(area_options)
+            schema[vol.Required("device_area", default=area_options[0])] = vol.In(area_options)
         else:
-            area_field = vol.Required("device_area"): str
+            schema[vol.Required("device_area")] = str
 
-        return vol.Schema(
-            {
-                vol.Required("device_name"): str,
-                area_field,
-            }
-        )
+        return vol.Schema(schema)
 
     async def async_step_user(self, user_input=None):
         if user_input is None:
