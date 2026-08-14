@@ -1,0 +1,12 @@
+{
+  "domain": "heat_cost_allocator",
+  "name": "Heat Cost Allocator",
+  "version": "0.2.0",
+  "documentation": "",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": [],
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "homeassistant": "2024.1.0"
+}

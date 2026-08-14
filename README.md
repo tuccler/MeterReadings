@@ -1,8 +1,8 @@
 # Heizkostenverteiler Dokumentation Addon
 
-Dieses Home Assistant Addon erlaubt die Dokumentation und Verwaltung von Heizkostenverteiler-Ablesewerten.
+Dieses Repository enthält ein Home Assistant Addon und eine Custom Integration zur Verwaltung von Heizkostenverteilern.
 
-Minimum Home Assistant: 2024.1.0 — this release removes legacy compatibility shims for older HA versions.
+Minimum Home Assistant: 2024.1.0 — integrations in this repo require HA 2024.1.0 or newer.
 
 ## Funktionen
 - Geräte anlegen mit Namen, Bereich und initialem Stichtagswert 0
@@ -70,13 +70,13 @@ Das Repository enthält zusätzlich eine Home Assistant Custom Integration, die 
 
 Dateien im Repository:
 
-- `custom_components/heater_meter_logger/` – die Custom Integration (manifest, __init__, sensor, config_flow, const)
-- `hacs.json` – HACS Metadaten für die Integration
+- `custom_components/heat_cost_allocator/` – die Custom Integration (manifest, __init__, sensor, config_flow, const)
+- `hacs.json` – HACS Metadaten für die integration
 
 Installation via HACS (lokales Repo oder GitHub):
 
 1. Wenn das Repo auf GitHub liegt: füge es in HACS (Integrationen -> + -> Suche nach deinem Repo oder "Custom repositories" und Kategorie "Integration").
-2. Wenn lokal: kopiere den Ordner `custom_components/heater_meter_logger` in `config/custom_components/` deines Home Assistant (nur für Tests, für HACS-Installation nutze GitHub).
+2. Wenn lokal: kopiere den Ordner `custom_components/heat_cost_allocator` in `config/custom_components/` deines Home Assistant (nur für Tests, für HACS-Installation nutze GitHub).
 3. Nach Installation: Neustart von Home Assistant.
 4. Integration konfigurieren: Einstellungen -> Geräte & Dienste -> Integration hinzufügen -> "Heater Meter Logger". Im Setup wirst du nach einem initialen Messgerät (Name und Bereich) gefragt; es werden keine Host- oder Port-Angaben benötigt.
 
@@ -88,10 +88,10 @@ Welche Entitäten werden erstellt:
 
 Services (unter dem Integrations-Domain-Namen verfügbar):
 
-- `heater_meter_logger.add_device` - Parameter: `name` (string), `area` (string)
-- `heater_meter_logger.add_reading` - Parameter: `device_id` (string), `value` (number), `timestamp` (optional ISO8601 string)
-- `heater_meter_logger.delete_reading` - Parameter: `device_id` (string), `reading_id` (string)
-- `heater_meter_logger.delete_device` - Parameter: `device_id` (string)
+- `heat_cost_allocator.add_device` - Parameter: `name` (string), `area` (string)
+- `heat_cost_allocator.set_current_reading` - Parameter: `device_id` (string), `value` (number), `timestamp` (optional ISO8601 string)
+- `heat_cost_allocator.set_yearly_total` - Parameter: `device_id` (string), `value` (number)
+- `heat_cost_allocator.remove_device` - Parameter: `device_id` (string)
 
 Anmerkungen:
 
@@ -103,9 +103,9 @@ Beispiele / UI-Automation
 
 - Beispiele zur manuellen Eingabe und Automation befinden sich im Ordner `examples/`:
   - `examples/input_entities.yaml` – Beispiel-Definitionen für `input_number.manual_meter_input` und `input_button.send_manual_reading`.
-  - `examples/input_select.yaml` – Beispiel `input_select.meter_device` zur Auswahl eines Geräts. Die Optionen werden über den Service `heater_meter_logger.populate_device_select` befüllt.
+  - `examples/input_select.yaml` – Beispiel `input_select.meter_device` zur Auswahl eines Geräts. Die Optionen können über den Service `heat_cost_allocator.populate_device_select` befüllt werden.
   - `examples/lovelace_manual_input.yaml` – Lovelace-Card-Beispiel (Entities Card) zur Anzeige und zum Auslösen einer manuellen Ablesung.
-  - `examples/automation_add_reading.yaml` – Automation, die beim Drücken des Buttons den Service `heater_meter_logger.add_reading` aufruft. Ersetze in dieser Automation `"<your_device_id>"` durch die tatsächliche `device_id` deines Geräts (z. B. `local-abcdef12`).
+  - `examples/automation_add_reading.yaml` – Automation, die beim Drücken des Buttons den Service `heat_cost_allocator.set_current_reading` aufruft. Ersetze in dieser Automation `"<your_device_id>"` durch die tatsächliche `device_id` deines Geräts (z. B. `local-abcdef12`).
   - `examples/automation_with_select.yaml` – Automationen: (1) befüllt `input_select.meter_device` beim HA-Start, (2) sendet beim Button-Drücken die Ablesung für das ausgewählte Gerät.
 
 Anwendungsablauf (kurz):
@@ -149,7 +149,7 @@ Das Addon stellt folgende Metriken zur Verfügung (Prometheus Exposition):
 Beispiel Prometheus-Scrape-Konfiguration (`prometheus.yml`):
 
 scrape_configs:
-  - job_name: 'heater_meter_logger'
+  - job_name: 'heat_cost_allocator'
     metrics_path: '/metrics'
     static_configs:
       - targets: ['homeassistant-host:8100']
@@ -215,7 +215,12 @@ trigger:
   - platform: state
     entity_id: sensor.manual_meter_input
 action:
-  - service: heater_meter_logger.add_reading
+  - service: heat_cost_allocator.set_current_reading
+    data:
+      device_id: "<device_id>"
+      value: "{{ states('sensor.manual_meter_input') | float }}"
+      timestamp: "{{ utcnow().isoformat() }}"
+  - service: heat_cost_allocator.set_current_reading
     data:
       device_id: "<device_id>"
       value: "{{ states('sensor.manual_meter_input') | float }}"
@@ -227,13 +232,13 @@ Passe `sensor.manual_meter_input` an das UI-Element oder Input-Number an, das du
 
 Für HACS-Distribution (empfohlen: GitHub Public Repository):
 
-1. Stelle sicher, dass `custom_components/heater_meter_logger/` und `hacs.json` im Root des Repos vorhanden sind.
-2. Aktuelle Version: 0.1.0. Die Integration manifestiert die Version in `custom_components/heater_meter_logger/manifest.json` und `hacs.json`.
+1. Stelle sicher, dass `custom_components/heat_cost_allocator/` und `hacs.json` im Root des Repos vorhanden sind.
+2. Aktuelle Version: 0.2.0. Die Integration manifestiert die Version in `custom_components/heat_cost_allocator/manifest.json` und `hacs.json`.
 3. Erstelle ein Tag im Format `vX.Y.Z` (z. B. `v0.1.0`) und pushe es zu GitHub. HACS nutzt Tags zur Versionierung.
 4. Optional: Erstelle ein GitHub-Release (Tags lösen den Release-Workflow aus). Das mitgelieferte GitHub Action Workflow `.github/workflows/release.yml` erstellt bei Tag-Push ein Release und lädt ein ZIP-Archiv hoch.
 5. HACS wird das Repo scannen und die neue Version als Release/Update erkennen.
 
-Hinweis: Das Commit-Tag `v0.1.0` signalisiert HACS, dass ein neues Release verfügbar ist. Stelle sicher, dass das Manifest in `custom_components/heater_meter_logger/manifest.json` die korrekte Version (`0.1.0`) enthält.
+Hinweis: Das Commit-Tag `v0.2.0` signalisiert HACS, dass ein neues Release verfügbar ist. Stelle sicher, dass das Manifest in `custom_components/heat_cost_allocator/manifest.json` die korrekte Version (`0.2.0`) enthält.
 
 ## Addon HTTP Export/Import Endpoints
 

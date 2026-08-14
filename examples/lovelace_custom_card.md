@@ -36,21 +36,21 @@ cards:
     show_state: false
     tap_action:
       action: call-service
-      service: heater_meter_logger.add_reading
+      service: heat_cost_allocator.set_current_reading
       service_data:
         device_id: "{{ states('input_select.meter_device').split(' — ')[-1] }}"
         value: "{{ states('input_number.manual_meter_input') | float }}"
         timestamp: "{{ utcnow().isoformat() }}"
 
 Anmerkungen
-- `tap_action.service_data` templating in button-card may not evaluate templates directly depending on version; in this case implement a Script in Home Assistant that reads the input_select and input_number and calls heater_meter_logger.add_reading, and then use button-card to call that Script.
+- `tap_action.service_data` templating in button-card may not evaluate templates directly depending on version; in this case implement a Script in Home Assistant that reads the input_select and input_number and calls heat_cost_allocator.set_current_reading, and then use button-card to call that Script.
 
 Script-Beispiel (in configuration.yaml or via UI Scripts):
 
 send_meter_reading:
   alias: "Send Meter Reading"
   sequence:
-    - service: heater_meter_logger.add_reading
+    - service: heat_cost_allocator.set_current_reading
       data:
         device_id: "{{ states('input_select.meter_device').split(' — ')[-1] }}"
         value: "{{ states('input_number.manual_meter_input') | float }}"

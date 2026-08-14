@@ -1,0 +1,38 @@
+set_current_reading:
+  name: Set current reading
+  description: Set the current (monthly) reading value for a device.
+  fields:
+    device_id:
+      description: ID of the device to update.
+      required: true
+    value:
+      description: Integer reading value (whole number).
+      required: true
+
+set_yearly_total:
+  name: Set yearly total
+  description: Set the total consumption for the last year for a device.
+  fields:
+    device_id:
+      description: ID of the device to update.
+      required: true
+    value:
+      description: Integer total value (whole number).
+      required: true
+
+add_device:
+  name: Add device
+  description: Add a new heat cost allocator device
+  fields:
+    name:
+      description: Device name.
+    area:
+      description: Optional area or room.
+
+remove_device:
+  name: Remove device
+  description: Remove a device by id.
+  fields:
+    device_id:
+      description: ID of the device to remove.
+      required: true

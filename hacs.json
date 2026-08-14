@@ -1,9 +1,9 @@
 {
-  "name": "Heater Meter Logger",
-  "description": "Integration to import heater meter readings from a local Home Assistant Addon",
+  "name": "Heat Cost Allocator",
+  "description": "Integration to manage heat cost allocators and manual readings",
   "categories": ["integration"],
   "domains": ["sensor"],
   "zip_release": false,
-  "filename": "custom_components/heater_meter_logger",
-  "version": "0.1.0"
+  "filename": "custom_components/heat_cost_allocator",
+  "version": "0.2.0"
 }

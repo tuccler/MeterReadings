@@ -5,9 +5,10 @@ trigger:
   - platform: homeassistant
     event: start
 action:
-  - service: heater_meter_logger.populate_device_select
+  - service: heat_cost_allocator.add_device
     data:
-      input_select: input_select.meter_device
+      name: "<device_name>"
+      area: "<area>"
 
 ---
 
@@ -18,7 +19,7 @@ trigger:
     event_data:
       entity_id: input_button.send_manual_reading
 action:
-  - service: heater_meter_logger.add_reading
+  - service: heat_cost_allocator.set_current_reading
     data:
       device_id: "{{ states('input_select.meter_device').split(' — ')[-1] }}"
       value: "{{ states('input_number.manual_meter_input') | float }}"
