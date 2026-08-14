@@ -5,7 +5,6 @@ import uuid
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.helpers import selector
 
 from .const import DOMAIN
 
@@ -22,13 +21,8 @@ DEVICE_AREA_OPTIONS = [
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required("device_name"): selector.TextSelector(),
-        vol.Required("device_area"): selector.SelectSelector(
-            selector.SelectSelectorConfig(
-                options=DEVICE_AREA_OPTIONS,
-                mode=selector.SelectSelectorMode.DROPDOWN,
-            )
-        ),
+        vol.Required("device_name"): str,
+        vol.Required("device_area", default="EG"): vol.In(DEVICE_AREA_OPTIONS),
     }
 )
 
