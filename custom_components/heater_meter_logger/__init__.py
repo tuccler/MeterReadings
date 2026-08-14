@@ -216,7 +216,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hass.services.async_register(DOMAIN, "import_data", async_service_import_data)
     hass.services.async_register(DOMAIN, "populate_device_select", async_service_populate_device_select)
 
-    hass.config_entries.async_setup_platforms(entry, PLATFORMS)
+    # Forward setup to platforms (use async_forward_entry_setup per HA API)
+    for platform in PLATFORMS:
+        await hass.config_entries.async_forward_entry_setup(entry, platform)
 
     return True
 
