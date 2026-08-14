@@ -38,7 +38,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         created_at = datetime.now(timezone.utc).isoformat()
         device_id = f"local-{uuid.uuid4().hex[:8]}"
-        dev = {"id": device_id, "name": name, "area": area, "created_at": created_at, "current_reading": 0, "yearly_total": 0}
+        dev = {
+            "id": device_id,
+            "name": name,
+            "area": area,
+            "created_at": created_at,
+            "last_updated": created_at,
+            "current_reading": 0,
+            "yearly_total": 0,
+        }
         updated = dict(entry.data)
         devices = list(updated.get("devices", []))
         devices.append(dev)
@@ -71,6 +79,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     d["current_reading"] = int(value)
                 except Exception:
                     d["current_reading"] = value
+                d["last_updated"] = datetime.now(timezone.utc).isoformat()
                 break
         updated["devices"] = devices
         hass.config_entries.async_update_entry(entry, data=updated)
@@ -90,6 +99,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     d["yearly_total"] = int(value)
                 except Exception:
                     d["yearly_total"] = value
+                d["last_updated"] = datetime.now(timezone.utc).isoformat()
                 break
         updated["devices"] = devices
         hass.config_entries.async_update_entry(entry, data=updated)
